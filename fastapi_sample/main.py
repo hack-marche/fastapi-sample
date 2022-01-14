@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from typing import Optional
+from fastapi import FastAPI, Query, Header
+from typing import Optional, List
+from pydantic import BaseModel
 
 from enum import Enum
 
@@ -10,9 +11,22 @@ class ModelName(str, Enum):
     resnet = "resnet"
     lenet = "lenet"
 
+class Item(BaseModel):
+    name: str
+    description: Optional[str] = None
+    price: float
+    tax: Optional[float] = None
+
 @app.get("/")
 async def hello():
     return {"message" : "Hello,World"}
+
+@app.get("/items/")
+async def read_items(q: Optional[str] = Query(None, max_length=10)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
 
 @app.get("/items/{item_id}")
 async def read_item(item_id: str, q: Optional[str] = None, short: bool = False):
@@ -56,3 +70,16 @@ async def get_model(model_name: ModelName):
 @app.get("/files/{file_path:path}")
 async def read_file(file_path: str):
     return {"file_path": file_path}
+
+@app.post("/items/")
+async def create_item(item: Item):
+    return item
+
+@app.get("/headers")
+async def read_headers(
+    x_tokens: List[str] = Header(None),
+    user_agent: Optional[str] = Header(None),
+):
+    if user_agent is None:
+        return {"x_tokens": x_tokens}
+    return {"x_tokens": x_tokens, "user_agent": user_agent}
